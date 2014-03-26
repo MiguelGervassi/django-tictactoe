@@ -4,14 +4,14 @@
   width: 600px;
 }
 
-
-#board{
+#tic-tac-toe{
   position: center;
 }
 
-#board td{
+#tic-tac-toe table td{
   width: 100px;
   height: 100px;
+  text-align: middle;
 }
 
 

@@ -1,5 +1,7 @@
 // socket.io specific code
 var socket = io.connect("/chat");
+var player_spaces = [];
+var ai_spaces = [];
 
 socket.on('connect', function () {
     $('#chat').addClass('connected');
@@ -18,22 +20,23 @@ socket.on('nicknames', function (nicknames) {
     }
 });
 
-
 socket.on('player_move', function(position, mark) {
     $('#'+position).parent().html(mark);
 });
+
 
 socket.on('ai_move', function(position, mark) {
     $('#'+position).parent().html(mark);
 });
 
+// socket.on('ai_move', ailogic);
 
-// socket.on('check_turn', function(bool) {
-//     if (bool)
-//         $('.position').removeAttr("disabled");
-//     else
-//         $('.position').attr('disabled', true);
-// });
+// function ai_logic(position, mark) {
+//     ai_spaces.push(position)
+//     $('#'+position).parent().html(mark);
+// }
+
+    
 
 
 socket.on('msg_to_room', message);
@@ -83,12 +86,15 @@ $(function () {
     });
 
    $(".start_btn").click(function(){
-        socket.emit('on_start_game', this.id); //id of button is position on grid
+        socket.emit('start_game'); //id of button is position on grid
         return false;
     });
 
-     
- 
+    $(".reset_btn").click(function(){
+        socket.emit('reset'); //id of button is position on grid
+        return false;
+    });
+
 
     function clear () {
         $('#message').val('').focus();
