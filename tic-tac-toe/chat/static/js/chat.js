@@ -28,12 +28,12 @@ socket.on('ai_move', function(position, mark) {
 });
 
 
-socket.on('check_turn', function(bool) {
-    if (bool)
-        $('.position').removeAttr("disabled");
-    else
-        $('.position').attr('disabled', true);
-});
+// socket.on('check_turn', function(bool) {
+//     if (bool)
+//         $('.position').removeAttr("disabled");
+//     else
+//         $('.position').attr('disabled', true);
+// });
 
 
 socket.on('msg_to_room', message);
