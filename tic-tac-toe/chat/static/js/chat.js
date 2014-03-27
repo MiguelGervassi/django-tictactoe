@@ -29,6 +29,11 @@ socket.on('ai_move', function(position, mark) {
     $('#'+position).parent().html(mark);
 });
 
+socket.on('disable_board', function() {
+    $('#'+position).parent().html(mark);
+});
+
+
 // socket.on('ai_move', ailogic);
 
 // function ai_logic(position, mark) {

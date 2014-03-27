@@ -10,7 +10,7 @@ from random import shuffle
 @namespace('/chat')
 class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     nicknames = []
-    grid= range(1,9)
+    grid= range(1,10)
     player_spaces=[]
     ai_spaces=[]
     turn=0
@@ -25,6 +25,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     def on_join(self, room):
         self.room = room
         self.join(room)
+        self.on_reset()
         return True
         
     def on_start_game(self):
@@ -38,11 +39,15 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         if mark == 'X':
           self.log("Your turn")
         else:
+          self.turn=self.turn+1
           self.log("AI turn")
-          ai_position = random.choice(self.grid)
+          ai_position = int(random.choice(self.grid))
           self.broadcast_event('ai_move', ai_position, self.socket.session['ai_mark'])
-          # self.grid.remove(int(ai_position))
-          self.ai_spaces.append(int(ai_position))
+          
+          if ai_position in self.grid:
+            self.grid.remove(ai_position)
+        
+          self.ai_spaces.append(ai_position)
           self.log("Your turn")
         return True    
 
@@ -71,103 +76,97 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         return True
 
     def on_reset(self):
-        self.grid = range(1,9)
+        del self.grid[:]
+        self.grid = (list(range(1,10)))
         del self.player_spaces[:]
         del self.ai_spaces[:]
 
     def on_move(self, position):
         #player_move
+        position = int(position)
         self.turn=self.turn+1
         self.log(self.turn)
         self.log('You have moved to' + str(position))
         self.broadcast_event('player_move', position, self.socket.session['player_mark'])
-        # self.grid.remove(int(position))
-        self.player_spaces.append(int(position))
+        if position in self.grid:
+            self.grid.remove(position)
+        self.player_spaces.append(position)
         print 'player spaces are '
         for s in self.player_spaces:
             print s
 
-        grid = self.grid
-        ai_position = random.choice(grid)
+        if self.grid: #if list not empty
+            #ai move
+            ai_position = int(random.choice(self.grid))
+            self.log('AI has moved' + str(ai_position))
+            self.broadcast_event('ai_move', ai_position, self.socket.session['ai_mark'])
+            if ai_position in self.grid:
+                self.grid.remove(ai_position)
+            self.ai_spaces.append(ai_position)
+            
+            print 'ai spaces are'
+            for s in self.ai_spaces:
+                print s
+     
+            # free spaces
+            print 'free spaces are'
+            for s in self.grid:
+                print s
+
+            #your turn
+            self.log("Your turn")
         
-        #ai move
-        self.log('AI has moved' + str(ai_position))
-        self.broadcast_event('ai_move', ai_position, self.socket.session['ai_mark'])
-        # self.grid.remove(int(ai_position))
-        self.ai_spaces.append(int(ai_position))
-        
-        print 'ai spaces are'
-        for s in self.ai_spaces:
-            print s
- 
-
-        print 'free spaces are'
-        for s in self.grid:
-            print s
-
-        full_grid = range(1,9)
-        win=''
-
-        # if 1 in self.player_spaces:
-        #     for x in 2:
-        #         if(set([1,x*2,(x*(1+x))+1]).issubset( self.player_spaces )):
-        #             break # found winner
-        # if 5 in self.player_spaces:
-        #     for x in 4:
-        #         if(set([x,5,(full_grid.length-x)]).issubset( self.player_spaces )):
-        #             break #found winner
-        # if 9 in self.player_spaces:
-        #     for x in 2:
-        #         if(set([9,9-(x*2),9-((x*(1+x))+1).issubset( self.player_spaces )):
-        #             break # found winner
-
-
-                
-
-
-        # self.broadcast_event('check_win', ai_spaces, player_spaces)
-        
-        #your turn
-        self.log("Your turn")
+        #check for winner add this to another method
         if self.turn >= 3:
             #check if player wins
             player_win = self.check_winner(self.player_spaces)
             self.log(player_win)
             ai_win = self.check_winner(self.ai_spaces)
             self.log(ai_win)
-            
+
             if(player_win):
                 self.log("Player Wins")
+                self.broadcast_event('disable_board')
                 self.on_reset()
             elif(ai_win):
                 self.log("AI Wins")
+                self.broadcast_event('disable_board')
                 self.on_reset()
+            elif not self.grid and not ai_win and not player_win:
+                self.log("Tie")
+                self.broadcast_event('disable_board')
+                self.on_reset()
+                
+
             
             # if(!ai_win && !player_win): check for tie
-
-
         return True
 
 
+    # def update_spaces(self,position,spaces):
+    #     if position in self.grid:
+    #         self.grid.remove(position)
+    #     else:
+    #         print 'could not read value' + str(position)
+    #     spaces.append(position)
+    #     self.log('This is the position that is added ' + str(position))
+
+    #check for winner
     def check_winner(self, spaces):
         win = False
         if 1 in spaces:
-            for x in range(1,2):
-                if(set([1,x*2,(x*(1+x))+1]).issubset( spaces )):
-                    self.log("Winner is ")
+            for x in range(1,3):
+                if(set([1,x*2,(x*(1+x))+1]).issubset( set(spaces) )):
                     win = True
-                    # break # found winner
         if 5 in spaces:
-            for x in range(1,4):
-                if(set([x,5,(10-x)]).issubset( spaces )):
-                    # break #found winner
-                    self.log("Winner is ")
+            for x in range(1,5):
+                if(set([x,5,(10-x)]).issubset( set(spaces) )):
                     win = True
         if 9 in spaces:
-            for x in range(1,2):
-                if(set([9,10-(x*2),10-((x*(1+x))+1)]).issubset( spaces )):
-                    self.log("Winner is ")
-                    win = True# break # found winner
+            for x in range(1,3):
+                # self.log(str(9)+","+str(10-(x*2))+","+str(10-((x*(1+x))+1))+"\n")
+                if(set([  9, (10-(x*2)), (10-((x*(1+x))+1))  ]).issubset( set(spaces) )):
+                    win = True # break # found winner
         return win
 
 
