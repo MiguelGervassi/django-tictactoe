@@ -134,10 +134,21 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
             return True
                 
          #check if there's a threat
-        if self.check_threat():
-            print 'is a threat!'
+        threat = self.check_threat(self.player_spaces)
+        ai_threat = self.check_threat(self.ai_spaces)
+
+        if threat[0]:
+            print 'player is a threat!'
+            print threat[1]
         else:
-            print 'not a threat'
+            print 'player not a threat'
+
+
+        if ai_threat[0]:
+            print 'ai is a threat!'
+            print ai_threat[1]
+        else:
+            print 'ai not a threat'
 
             
             # if(!ai_win && !player_win): check for tie
@@ -167,17 +178,60 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                 ai_position = 5   
         elif self.turn <= 2:
             ai_position = 5    
+        
 
         
         if self.turn == 3: # check turn 2
             if self.player_spaces:
-                if self.player_spaces[len(self.player_spaces)-1] in [2,4,6,8]: #check if one these spaces were taken (2,4,6,8)
-                    turn3 = [x for x in self.grid if x in [1,3,5,7,9]]
-                    ai_position = random.choice(turn3)
-                if self.player_spaces[len(self.player_spaces)-1] in [1,3,7,9]: #check if one these spaces were taken (2,4,6,8)
-                    turn3 = [x for x in self.grid if x in [1,3,5,7,9]]
-                    ai_position = random.choice(turn3)
-         
+                # if self.player_spaces[len(self.player_spaces)-1] in [2,4,6,8]: #check if one these spaces were taken (2,4,6,8)
+                turn3 = [x for x in self.grid if x in [1,3,5,7,9]]
+                ai_position = random.choice(turn3)
+                # if self.player_spaces[len(self.player_spaces)-1] in [1,3,7,9]: #check if one these spaces were taken (2,4,6,8)
+                    # turn3 = [x for x in self.grid if x in [1,3,5,7,9]]
+                    # ai_position = random.choice(turn3)
+        
+        if self.turn == 4:
+            turn4 = [x for x in self.grid if x in [1,3,7,9]]
+            if turn4:
+                ai_position = random.choice(turn4)     
+
+            # if(set([1,5]).issubset( set(self.player_spaces) )):
+            # is_player_threat = self.check_threat(self.player_spaces)
+            # if not is_player_threat:
+            #     ai_position = is_player_threat[1]
+
+
+
+
+            # if 1 and 5 in self.player_spaces:
+            #     ai_position = 9
+            # elif 3 and 5 in self.player_spaces:
+            #     ai_position = 7
+            # elif 7 and 5 in self.player_spaces:
+            #     ai_position = 3
+            # elif 5 and 9 in self.player_spaces:
+            #     ai_position = 1
+
+
+
+
+        #priority should happen after turn 3
+        #check for threat or if win is possible
+        is_player_threat = self.check_threat(self.player_spaces)
+        ai_win = self.check_threat(self.ai_spaces)
+
+        print 'checking threats...'
+        if ai_win[0]:
+            ai_position = ai_win[1]
+            return ai_win[1]
+
+        if is_player_threat[0]:
+            ai_position = is_player_threat[1]
+            return is_player_threat[1]
+
+
+
+                 
 
 
         #defend
@@ -200,28 +254,31 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
 
 
 
-    def check_threat(self):
-        threat = False
+    def check_threat(self,spaces):
+        threat_info = [False,0] #if threat, if there is second value should be what position it is 
         if self.player_spaces:
             for x in range(1,3):
-                threat = self.check_threat_algo(1,x*2,(x*(1+x))+1,threat)
-                threat = self.check_threat_algo(9,(10-(x*2)), (10-((x*(1+x))+1)),threat)
+                threat_info = self.check_threat_algo(spaces, 1,x*2,(x*(1+x))+1,threat_info)
+                threat_info = self.check_threat_algo(spaces, 9,(10-(x*2)), (10-((x*(1+x))+1)),threat_info)
             # if 5 in self.player_spaces:
             for x in range(1,5):
-                threat = self.check_threat_algo(x,5,(10-x),threat)                
-        return threat
+                threat_info = self.check_threat_algo(spaces, x,5,(10-x),threat_info)                
+        return threat_info
 
-    def check_threat_algo(self,pos1,pos2,pos3,threat):
-        if(set([pos1,pos2]).issubset( set(self.player_spaces) )):
+    def check_threat_algo(self,spaces,pos1,pos2,pos3,threat_info):
+        if(set([pos1,pos2]).issubset( set(spaces) )):
             if pos3 in self.grid:
-                threat = True # is a threat
-        if(set([pos1,pos3]).issubset( set(self.player_spaces) )):
+                threat_info[0] = True # threat is the boolean that tells you whether or not a threat is happening
+                threat_info[1] = pos3
+        if(set([pos1,pos3]).issubset( set(spaces) )):
             if pos2 in self.grid:
-                threat = True
-        if(set([pos2,pos3]).issubset( set(self.player_spaces) )):
+                threat_info[0] = True
+                threat_info[1] = pos2
+        if(set([pos2,pos3]).issubset( set(spaces) )):
             if pos1 in self.grid:
-                threat = True
-        return threat        
+                threat_info[0] = True
+                threat_info[1] = pos1
+        return threat_info       
 
 
     # def check_win(self):
