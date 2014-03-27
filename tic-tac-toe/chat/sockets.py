@@ -18,6 +18,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     def initialize(self):
         self.logger = logging.getLogger("socketio.chat")
         self.log("Socketio session started")
+        self.on_reset()
         
     def log(self, message):
         self.logger.info("[{0}] {1}".format(self.socket.sessid, message))
@@ -95,6 +96,11 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         for s in self.player_spaces:
             print s
 
+        #focus on this to check for error
+        if self.check_winner():
+            return True
+
+
         if self.grid: #if list not empty
             #ai move
             ai_position = int(random.choice(self.grid))
@@ -117,25 +123,9 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
             self.log("Your turn")
         
         #check for winner add this to another method
-        if self.turn >= 3:
-            #check if player wins
-            player_win = self.check_winner(self.player_spaces)
-            self.log(player_win)
-            ai_win = self.check_winner(self.ai_spaces)
-            self.log(ai_win)
-
-            if(player_win):
-                self.log("Player Wins")
-                self.broadcast_event('disable_board')
-                self.on_reset()
-            elif(ai_win):
-                self.log("AI Wins")
-                self.broadcast_event('disable_board')
-                self.on_reset()
-            elif not self.grid and not ai_win and not player_win:
-                self.log("Tie")
-                self.broadcast_event('disable_board')
-                self.on_reset()
+        #original check for win
+        if self.check_winner():
+            return True
                 
 
             
@@ -152,7 +142,32 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     #     self.log('This is the position that is added ' + str(position))
 
     #check for winner
-    def check_winner(self, spaces):
+    def check_winner(self):
+        if self.turn >= 3:
+            player_win = self.check_winner_algo(self.player_spaces)
+            self.log(player_win)
+            ai_win = self.check_winner_algo(self.ai_spaces)
+            self.log(ai_win)
+
+            if(player_win):
+                self.log("Player Wins")
+                self.broadcast_event('disable_board')
+                self.on_reset()
+                return True
+            elif(ai_win):
+                self.log("AI Wins")
+                self.broadcast_event('disable_board')
+                self.on_reset()
+                return True
+            elif not self.grid and not ai_win and not player_win:
+                self.log("Tie")
+                self.broadcast_event('disable_board')
+                self.on_reset()
+                return True
+        return False
+    
+    #check winner algorithm
+    def check_winner_algo(self, spaces):
         win = False
         if 1 in spaces:
             for x in range(1,3):

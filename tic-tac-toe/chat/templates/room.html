@@ -34,27 +34,11 @@
     <button>Send</button>
   </form>
     
-
-  <div id="tic-tac-toe">
-    <table border="1" class="board">
-    <tr>
-      <td><input type="submit" class="position" id="1" value=""></td>
-      <td><input type="submit" class="position" id="2" value=""></td>
-      <td><input type="submit" class="position" id="3" value=""></td>
-    </tr>
-    <tr>
-      <td><input type="submit" class="position" id="4" value=""></td>
-      <td><input type="submit" class="position" id="5" value=""></td>
-      <td><input type="submit" class="position" id="6" value=""></td>
-    </tr>
-    <tr>
-      <td><input type="submit" class="position" id="7" value=""></td>
-      <td><input type="submit" class="position" id="8" value=""></td>
-      <td><input type="submit" class="position" id="9" value=""></td>
-    </tr> 
-    </table>
-    <input type="submit" class="start_btn" value="Start Game"> 
-    <input type="submit" class="reset_btn" value="Reset"> 
+  <!-- try to see if you can switch board when u press reset -->
+  <div id="switch">
+    {% include 'tic-tac-toe.html' %}
   </div>
+  <input type="submit" class="start_btn" value="Start Game"> 
+  <input type="submit" class="reset_btn" value="Reset"> 
 
 {% endblock %}

@@ -30,7 +30,7 @@ socket.on('ai_move', function(position, mark) {
 });
 
 socket.on('disable_board', function() {
-    $('#'+position).parent().html(mark);
+    $("#tic-tac-toe").find("table,td,input").attr("disabled", "disabled");
 });
 
 
