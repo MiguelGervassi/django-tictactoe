@@ -1,5 +1,5 @@
 from socketio import socketio_manage
-
+from django.template import Context, loader, RequestContext
 from django.http import HttpResponse
 from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import get_object_or_404, render, redirect
@@ -21,7 +21,6 @@ def room(request, slug, template="room.html"):
     """
     context = {"room": get_object_or_404(ChatRoom, slug=slug)}
     return render(request, template, context)
-
 
 def create(request):
     """

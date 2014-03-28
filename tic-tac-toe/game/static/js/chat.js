@@ -48,6 +48,14 @@ socket.on('disable_board', function() {
 });
 
 
+socket.on('display_win_message', function(message) {
+    $('#display_win_message').html("<h1 style='color:green;'>"+message+"</h1>");
+});
+
+
+
+
+
 // socket.on('ai_move', ailogic);
 
 // function ai_logic(position, mark) {
@@ -109,9 +117,15 @@ $(function () {
         return false;
     });
 
-    $(".reset_btn").click(function(){
-        socket.emit('reset'); //id of button is position on grid
-        return false;
+
+    $(".reset_btn").click(function(e){ 
+        location.reload();
+    // $.ajax({
+    //     url: '{% url "room" %}',
+    //     success: function(data) {
+    //         $("#canvas").html(data);
+    //     }
+    //   });
     });
 
 
