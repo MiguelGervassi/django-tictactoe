@@ -169,19 +169,19 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         # check_threat
         ai_position = random.choice(self.grid)
 
-        # turn 1 logic
+        # turn 1 or 2 logic: turn one if middle space is not occupied by opponent, take it else take corner
         turn1 = [x for x in self.grid if x in [1,3,7,9]]
-        if self.player_spaces and self.turn<=2:
+        if self.player_spaces and self.turn<=2:  
             if self.player_spaces[0]==5:
                 ai_position = random.choice(turn1)
             else:
                 ai_position = 5   
         elif self.turn <= 2:
             ai_position = 5    
-        
+
 
         
-        if self.turn == 3: # check turn 2
+        if self.turn == 3: # if its turn 3:  must choose corner or center if possible, guaranteed offensive/defensive 
             if self.player_spaces:
                 # if self.player_spaces[len(self.player_spaces)-1] in [2,4,6,8]: #check if one these spaces were taken (2,4,6,8)
                 turn3 = [x for x in self.grid if x in [1,3,5,7,9]]

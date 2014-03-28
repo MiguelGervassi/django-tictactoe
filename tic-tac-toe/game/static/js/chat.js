@@ -21,16 +21,30 @@ socket.on('nicknames', function (nicknames) {
 });
 
 socket.on('player_move', function(position, mark) {
-    $('#'+position).parent().html(mark);
+    if(mark=="X"){
+        $('#'+position).html("<img src='static/images/X.png' class='myimageclass'>");
+        $('#'+position).unbind("click");
+    }else{
+        $('#'+position).html("<img src='static/images/O.png' class='myimageclass'>");
+        $('#'+position).unbind("click");
+    }        
 });
 
 
 socket.on('ai_move', function(position, mark) {
-    $('#'+position).parent().html(mark);
+    if(mark=="X"){
+        $('#'+position).html("<img src='static/images/X.png' class='myimageclass'>");
+        $('#'+position).unbind("click");
+    }else{
+        $('#'+position).html("<img src='static/images/O.png' class='myimageclass'>");
+        $('#'+position).unbind("click");
+}
+
+
 });
 
 socket.on('disable_board', function() {
-    $("#tic-tac-toe").find("table,td,input").attr("disabled", "disabled");
+    $("#tic-tac-toe").find("table,td").unbind("click");
 });
 
 

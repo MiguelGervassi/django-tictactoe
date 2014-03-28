@@ -35,10 +35,13 @@
   </form> -->
     
   <!-- try to see if you can switch board when u press reset -->
-  <div id="switch">
+  <div id="container" align="center">
     {% include 'tic-tac-toe.html' %}
   </div>
-  <input type="submit" class="start_btn" value="Start Game"> 
-  <input type="submit" class="reset_btn" value="Reset"> 
+
+  <div id="controls" align="center">
+    <!-- <input type="submit" class="start_btn" value="Start Game">  -->
+    <input type="submit" class="reset_btn" value="Reset"> 
+  </div>
 
 {% endblock %}
