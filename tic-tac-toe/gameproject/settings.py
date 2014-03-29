@@ -37,6 +37,7 @@ MIDDLEWARE_CLASSES = (
 )
 
 STATIC_URL = "/static/"
+MEDIA_URL = "/static/images"
 ROOT_URLCONF = "urls"
 TEMPLATE_DIRS = full_path("templates")
 LOGIN_URL = "/admin/"

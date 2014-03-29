@@ -6,7 +6,6 @@ from socketio.sdjango import namespace
 import random 
 from random import shuffle
 
-
 @namespace('/game')
 class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     grid= range(1,10)
@@ -41,7 +40,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
           self.log("AI turn")
           # ai_position = int(random.choice(self.grid))
           ai_position = self.ai_logic()
-          self.broadcast_event('ai_move', ai_position, self.socket.session['ai_mark'])
+          self.broadcast_event('move', ai_position, self.socket.session['ai_mark'])
           
           if ai_position in self.grid:
             self.grid.remove(ai_position)
@@ -62,7 +61,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         self.turn=self.turn+1
         self.log(self.turn)
         self.log('You have moved to' + str(position))
-        self.broadcast_event('player_move', position, self.socket.session['player_mark'])
+        self.broadcast_event('move', position, self.socket.session['player_mark'])
         if position in self.grid:
             self.grid.remove(position)
         self.player_spaces.append(position)
@@ -82,7 +81,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
             self.turn=self.turn+1 #ai_turn
             ai_position = self.ai_logic()
             self.log('AI has moved' + str(ai_position))
-            self.broadcast_event('ai_move', ai_position, self.socket.session['ai_mark'])
+            self.broadcast_event('move', ai_position, self.socket.session['ai_mark'])
             if ai_position in self.grid:
                 self.grid.remove(ai_position)
             self.ai_spaces.append(ai_position)
@@ -160,7 +159,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         if self.turn == 3: # if its turn 3:  must choose corner or center if possible, guaranteed offensive/defensive 
             if self.player_spaces:
                 # if self.player_spaces[len(self.player_spaces)-1] in [2,4,6,8]: #check if one these spaces were taken (2,4,6,8)
-                turn3 = [x for x in self.grid if x in [1,3,5,7,9]]
+                turn3 = self.free_spaces([1,3,5,7,9])
                 if 5 in turn3:
                     ai_position = 5
                     return ai_position
@@ -168,58 +167,18 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                     ai_position = random.choice(turn3)
                             
         if self.turn == 4: #turn 4, check for defense and attack
-            turn4 = [x for x in self.grid if x in [1,3,7,9]]
+            turn4 = self.free_spaces([1,3,7,9])
             if turn4:
                 #diagnol check, i believe this works now :)
                 if 5 in self.grid:
                     ai_position = 5
                     return ai_position
                 elif 5 in self.ai_spaces:
-                    if (set([1,9]).issubset( set(self.player_spaces)) or set([3,7]).issubset( set(self.player_spaces))):
-                        turn4 = [x for x in self.grid if x in [2,4,6,8]]     
+                    if self.list_contains_list([1,9],self.player_spaces) or self.list_contains_list([3,7],self.player_spaces):
+                        turn4 = self.free_spaces([2,4,6,8])     
                         ai_position = random.choice(turn4)
                 else:
                    ai_position = random.choice(turn4)    
-
-                # used to give ai more randomness
-                # rand = [x for x in self.grid if x in [1,4,7]]
-                # for x in [4,1]:
-                #     if set([8,x]).issubset( self.player_spaces ):
-                #         ai_position = random.choice(rand)
-                #         return ai_position    
-                # for x in [4,7]:
-                #     if set([2,x]).issubset( self.player_spaces ):
-                #         ai_position = random.choice(rand)
-                #         return ai_position    
-
-                # rand = [x for x in self.grid if x in [3,6,9]]
-                # for x in [6,3]:
-                #     if set([8,x]).issubset( self.player_spaces ):
-                #         ai_position = random.choice(rand)
-                #         return ai_position    
-                # for x in [6,9]:
-                #     if set([2,x]).issubset( self.player_spaces ):
-                #         ai_position = random.choice(rand)
-                #         return ai_position    
-                
-                # rand = [x for x in self.grid if x in [1,2,3]]
-                # for x in [2,3]:
-                #     if set([4,x]).issubset( self.player_spaces ):
-                #         ai_position = random.choice(rand)    
-                # for x in [2,1]:
-                #     if set([6,x]).issubset( self.player_spaces ):
-                #         ai_position = random.choice(rand)
-                #         return ai_position   
-
-                # rand = [x for x in self.grid if x in [7,8,9]]
-                # for x in [8,9]:
-                #     if set([4,x]).issubset( self.player_spaces ):
-                #         ai_position = random.choice(rand)
-                #         return ai_position    
-                # for x in [8,7]:
-                #     if set([6,x]).issubset( self.player_spaces ):
-                #         ai_position = random.choice(rand)
-                #         return ai_position      
 
         is_player_threat = self.check_immediate_threat(self.player_spaces)
         ai_win = self.check_immediate_threat(self.ai_spaces)
@@ -240,8 +199,6 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                 return is_player_threat[1]
         return ai_position
 
-    def free_spaces(self,custom_spaces): #check if the grid has the given spaces free
-        return [x for x in self.grid if x in custom_spaces]
 
     def check_immediate_threat(self,spaces):
         threat_info = [False,0] #if threat, if there is second value should be what position it is 
@@ -253,6 +210,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                 threat_info = self.check_threat_algo(spaces, x,5,(10-x),threat_info)                                                   
         return threat_info
 
+    #if there is no immediate threat check for strategic threat
     def check_strategic_threat(self,spaces):
         threat_info = [False,0]
         for x in [4,7,6,9]: #2
@@ -286,15 +244,15 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         return threat_info
 
     def check_threat_algo(self,spaces,pos1,pos2,pos3,threat_info):
-        if(set([pos1,pos2]).issubset( set(spaces) )):
+        if self.list_contains_list([pos1,pos2],spaces):
             if pos3 in self.grid:
                 threat_info[0] = True # threat is the boolean that tells you whether or not a threat is happening
                 threat_info[1] = pos3
-        if(set([pos1,pos3]).issubset( set(spaces) )):
+        if self.list_contains_list([pos1,pos3],spaces):
             if pos2 in self.grid:
                 threat_info[0] = True
                 threat_info[1] = pos2
-        if(set([pos2,pos3]).issubset( set(spaces) )):
+        if self.list_contains_list([pos2,pos3],spaces):
             if pos1 in self.grid:
                 threat_info[0] = True
                 threat_info[1] = pos1                
@@ -333,17 +291,22 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         win = False
         if 1 in spaces:
             for x in range(1,3):
-                if(set([1,x*2,(x*(1+x))+1]).issubset( set(spaces) )):
+                if self.list_contains_list([1,x*2,(x*(1+x))+1],spaces):
                     win = True
         if 5 in spaces:
             for x in range(1,5):
-                if(set([x,5,(10-x)]).issubset( set(spaces) )):
+                if self.list_contains_list([x,5,(10-x)],spaces):
                     win = True
         if 9 in spaces:
             for x in range(1,3):
-                # self.log(str(9)+","+str(10-(x*2))+","+str(10-((x*(1+x))+1))+"\n")
-                if(set([  9, (10-(x*2)), (10-((x*(1+x))+1))  ]).issubset( set(spaces) )):
+                if self.list_contains_list([ 9,(10-(x*2)),(10-((x*(1+x))+1))], spaces):
                     win = True # break # found winner
         return win
 
 
+
+    def list_contains_list(self,list1,list2):
+        return set(list1).issubset( set(list2) )
+
+    def free_spaces(self,custom_spaces): #check if the grid has the given spaces free
+        return [x for x in self.grid if x in custom_spaces]

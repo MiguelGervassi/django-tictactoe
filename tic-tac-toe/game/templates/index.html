@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Tic Tac Toe{% endblock %}
+
+{% block extra_js %}
+  <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+  <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
+  <script src="{{ STATIC_URL|default:MEDIA_URL }}js/socket.io.js"></script>
+  <script src="{{ STATIC_URL }}js/game.js"></script>
+{% endblock %}
+
+{% block main %}
+  <h1>TIC-TAC-TOE GAME</h1>
+  <div id="canvas" align="center">
+      {% include 'tic-tac-toe.html' %}
+  </div>
+
+  <div id="controls" align="center">
+    <input type="submit" id="bigbutton" class="reset_btn" value="Restart"> 
+  </div>
+  <div id="display_win_message"></div>
+{% endblock %}
