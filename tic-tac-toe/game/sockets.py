@@ -7,25 +7,22 @@ import random
 from random import shuffle
 
 
-@namespace('/chat')
+@namespace('/game')
 class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
-    nicknames = []
     grid= range(1,10)
     player_spaces=[]
     ai_spaces=[]
     turn=0
 
     def initialize(self):
-        self.logger = logging.getLogger("socketio.chat")
+        self.logger = logging.getLogger("socketio.game")
         self.log("Socketio session started")
         self.on_reset()
         
     def log(self, message):
         self.logger.info("[{0}] {1}".format(self.socket.sessid, message))
     
-    def on_join(self, room):
-        self.room = room
-        self.join(room)
+    def on_join(self):
         self.on_reset()
         return True
         
@@ -52,30 +49,6 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
           self.ai_spaces.append(ai_position)
           self.log("Your turn")
         return True    
-
-    def on_nickname(self, nickname):
-        # self.log('Nickname: {0}'.format(nickname))
-        # self.nicknames.append(nickname)
-        # self.socket.session['nickname'] = nickname
-        # self.broadcast_event('announcement', '%s has connected' % nickname)
-        # self.broadcast_event('nicknames', self.nicknames)
-        return True, nickname
-
-    def recv_disconnect(self):
-        # Remove nickname from the list.
-        # self.log('Disconnected')
-        # nickname = self.socket.session['nickname']
-        # self.nicknames.remove(nickname)
-        # self.broadcast_event('announcement', '%s has disconnected' % nickname)
-        # self.broadcast_event('nicknames', self.nicknames)
-        # self.disconnect(silent=True)
-        return True
-
-    def on_user_message(self, msg):
-        self.log('User message: {0}'.format(msg))
-        self.emit_to_room(self.room, 'msg_to_room',
-            self.socket.session['nickname'], msg)
-        return True
 
     def on_reset(self):
         del self.grid[:]
@@ -154,114 +127,102 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
             # if(!ai_win && !player_win): check for tie
         return True
 
-
-    # def update_spaces(self,position,spaces):
-    #     if position in self.grid:
-    #         self.grid.remove(position)
-    #     else:
-    #         print 'could not read value' + str(position)
-    #     spaces.append(position)
-    #     self.log('This is the position that is added ' + str(position))
-
-
     #ai logic
     def ai_logic(self):
-        # check_threat
         ai_position = random.choice(self.grid)
+        if self.turn == 1:
+            return ai_position
 
-        # turn 1 or 2 logic: turn one if middle space is not occupied by opponent, take it else take corner
-        turn1 = [x for x in self.grid if x in [1,3,7,9]]
-        if self.player_spaces and self.turn<=2:  
-            if self.player_spaces[0]==5:
-                ai_position = random.choice(turn1)
-            else:
-                ai_position = 5   
-        elif self.turn <= 2:
-            ai_position = 5    
+        if self.turn == 2:
+            for x in [1,3,7,9]:
+                if x in self.player_spaces:
+                    ai_position = 5
+                    return ai_position
+                elif 5 in self.player_spaces:
+                    ai_position = random.choice(self.free_spaces([1,3,7,9]))
+                    return ai_position
 
+            for x in [2,4,6,8]:
+                if x in self.player_spaces:
+                    if x == 2:
+                        ai_position = random.choice(self.free_spaces([1,3,5]))
+                        return ai_position
+                    if x == 4:
+                        ai_position = random.choice(self.free_spaces([1,7,5]))
+                        return ai_position
+                    if x == 6:
+                        ai_position = random.choice(self.free_spaces([9,3,5]))
+                        return ai_position
+                    if x == 8:
+                        ai_position = random.choice(self.free_spaces([9,7,5]))
+                        return ai_position        
+                   
         if self.turn == 3: # if its turn 3:  must choose corner or center if possible, guaranteed offensive/defensive 
             if self.player_spaces:
                 # if self.player_spaces[len(self.player_spaces)-1] in [2,4,6,8]: #check if one these spaces were taken (2,4,6,8)
                 turn3 = [x for x in self.grid if x in [1,3,5,7,9]]
-                ai_position = random.choice(turn3)
-                # if self.player_spaces[len(self.player_spaces)-1] in [1,3,7,9]: #check if one these spaces were taken (2,4,6,8)
-                    # turn3 = [x for x in self.grid if x in [1,3,5,7,9]]
-                    # ai_position = random.choice(turn3)
-        
+                if 5 in turn3:
+                    ai_position = 5
+                    return ai_position
+                else:
+                    ai_position = random.choice(turn3)
+                            
         if self.turn == 4: #turn 4, check for defense and attack
             turn4 = [x for x in self.grid if x in [1,3,7,9]]
             if turn4:
                 #diagnol check, i believe this works now :)
-                if 5 in self.ai_spaces:
+                if 5 in self.grid:
+                    ai_position = 5
+                    return ai_position
+                elif 5 in self.ai_spaces:
                     if (set([1,9]).issubset( set(self.player_spaces)) or set([3,7]).issubset( set(self.player_spaces))):
                         turn4 = [x for x in self.grid if x in [2,4,6,8]]     
                         ai_position = random.choice(turn4)
                 else:
                    ai_position = random.choice(turn4)    
-            # if(set([1,3,7,9]).issubset( set(self.player_spaces) )):
-            #     if 5 in self.ai_spaces:
-            #         turn4 = [x for x in self.grid if x in [2,4,6,8]]
-            #         ai_position = random.choice(turn4)
-            #     else:
-                         
 
-                # [2,4]
-                # [2,7]
-                # [2,6]
-                # [2,9]
+                # used to give ai more randomness
+                # rand = [x for x in self.grid if x in [1,4,7]]
+                # for x in [4,1]:
+                #     if set([8,x]).issubset( self.player_spaces ):
+                #         ai_position = random.choice(rand)
+                #         return ai_position    
+                # for x in [4,7]:
+                #     if set([2,x]).issubset( self.player_spaces ):
+                #         ai_position = random.choice(rand)
+                #         return ai_position    
+
+                # rand = [x for x in self.grid if x in [3,6,9]]
+                # for x in [6,3]:
+                #     if set([8,x]).issubset( self.player_spaces ):
+                #         ai_position = random.choice(rand)
+                #         return ai_position    
+                # for x in [6,9]:
+                #     if set([2,x]).issubset( self.player_spaces ):
+                #         ai_position = random.choice(rand)
+                #         return ai_position    
                 
-                # [4,2]
-                # [4,3]
-                # [4,8]
-                # [4,9]
-                
-                # [6,2]
-                # [6,1]
-                # [6,8]
-                # [6,7]
-                
-                # [8,6]
-                # [8,4]
-                # [8,3]
-                # [8,1] 
+                # rand = [x for x in self.grid if x in [1,2,3]]
+                # for x in [2,3]:
+                #     if set([4,x]).issubset( self.player_spaces ):
+                #         ai_position = random.choice(rand)    
+                # for x in [2,1]:
+                #     if set([6,x]).issubset( self.player_spaces ):
+                #         ai_position = random.choice(rand)
+                #         return ai_position   
 
+                # rand = [x for x in self.grid if x in [7,8,9]]
+                # for x in [8,9]:
+                #     if set([4,x]).issubset( self.player_spaces ):
+                #         ai_position = random.choice(rand)
+                #         return ai_position    
+                # for x in [8,7]:
+                #     if set([6,x]).issubset( self.player_spaces ):
+                #         ai_position = random.choice(rand)
+                #         return ai_position      
 
-                # if(set([2,4,7,3]).issubset( set(self.player_spaces) )):
-                #     ai_position = 1 
-                # elif(set([2,6,9,1]).issubset( set(self.player_spaces) )):
-                #     ai_position = 3
-                # elif(set([4,8,9,1]).issubset( set(self.player_spaces) )):
-                #     ai_position = 7
-                # elif(set([8,6,3,7]).issubset( set(self.player_spaces) )):
-                #     ai_position = 9
-                # else:
-
-            # if(set([1,5]).issubset( set(self.player_spaces) )):
-            # is_player_threat = self.check_immediate_threat(self.player_spaces)
-            # if not is_player_threat:
-            #     ai_position = is_player_threat[1]
-
-
-
-
-            # if 1 and 5 in self.player_spaces:
-            #     ai_position = 9
-            # elif 3 and 5 in self.player_spaces:
-            #     ai_position = 7
-            # elif 7 and 5 in self.player_spaces:
-            #     ai_position = 3
-            # elif 5 and 9 in self.player_spaces:
-            #     ai_position = 1
-
-
-
-
-        #priority should happen after turn 3
-        #check for threat or if win is possible
         is_player_threat = self.check_immediate_threat(self.player_spaces)
         ai_win = self.check_immediate_threat(self.ai_spaces)
-
-
 
         print 'checking threats...'
         if ai_win[0]:
@@ -277,30 +238,10 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
             if is_player_threat[0]: #if there is a strategic threat then assign new ai_position
                 ai_position = is_player_threat[1]
                 return is_player_threat[1]
-
-
-                 
-
-
-        #defend
-        # if self.turn == 4:
-        #     if self.player_spaces:
-        #         if self.player_spaces[len(self.player_spaces)-1] in
-
-
-        # turn 2 logic
-        # if(set([2,4,6,8]).issubset( set(self.player_spaces) )):
-                
-        #turn 3 check for threats or attack
-
-        # if self.turn == 2:
-            # if self.player_spaces[self.player_spaces.length-1]==:
-
-
-
         return ai_position
 
-
+    def free_spaces(self,custom_spaces): #check if the grid has the given spaces free
+        return [x for x in self.grid if x in custom_spaces]
 
     def check_immediate_threat(self,spaces):
         threat_info = [False,0] #if threat, if there is second value should be what position it is 
@@ -308,32 +249,8 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
             for x in range(1,3):
                 threat_info = self.check_threat_algo(spaces, 1,x*2,(x*(1+x))+1,threat_info)
                 threat_info = self.check_threat_algo(spaces, 9,(10-(x*2)), (10-((x*(1+x))+1)),threat_info)
-            # if 5 in self.player_spaces:
             for x in range(1,5):
-                threat_info = self.check_threat_algo(spaces, x,5,(10-x),threat_info)                
-            # must fix
-            # not working correctly could be better apprach###
-            # if not threat_info:
-            #     for x in [4,7,6,9]: #2
-            #         if x == 4 or x == 7:
-            #             threat_info = self.check_threat_algo(spaces,2,x,1,threat_info)               
-            #         elif x == 6 or x == 9:
-            #             threat_info = self.check_threat_algo(spaces,2,x,3,threat_info)                                    
-            #     for x in [6,3,4,1]: #8
-            #         if x == 6 or x == 3:
-            #             threat_info = self.check_threat_algo(spaces,8,x,9,threat_info)               
-            #         elif x == 4 or x == 1:
-            #             threat_info = self.check_threat_algo(spaces,8,x,7,threat_info)                                    
-            #     for x in [1,7]: #6
-            #         if x == 1:
-            #             threat_info = self.check_threat_algo(spaces,6,x,3,threat_info)               
-            #         elif x == 7:
-            #             threat_info = self.check_threat_algo(spaces,6,x,9,threat_info)                                    
-            #     for x in [3,9]: #4
-            #         if x == 3:
-            #             threat_info = self.check_threat_algo(spaces,4,x,1,threat_info)               
-            #         elif x == 9:
-            #             threat_info = self.check_threat_algo(spaces,4,x,7,threat_info)                                    
+                threat_info = self.check_threat_algo(spaces, x,5,(10-x),threat_info)                                                   
         return threat_info
 
     def check_strategic_threat(self,spaces):
@@ -368,36 +285,6 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                 if threat_info[0]: return threat_info                                    
         return threat_info
 
-
-
-
-
-
-
-        #     if x == 1:
-        #         for y in [2,4]:
-        #             for z in [4,7,3]:
-        #                 threat_info = self.check_threat_algo(spaces,y,z,x,threat_info)               
-                        
-            # if x == 1:
-            #     threat_info = self.check_threat_algo(spaces,2,4,x,threat_info)               
-            #     threat_info = self.check_threat_algo(spaces,2,7,x,threat_info)  
-            #     threat_info = self.check_threat_algo(spaces,4,3,x,threat_info)               
-            # if x == 3:
-            #     threat_info = self.check_threat_algo(spaces,2,6,x,threat_info)               
-            #     threat_info = self.check_threat_algo(spaces,2,9,x,threat_info)               
-            #     threat_info = self.check_threat_algo(spaces,6,1,x,threat_info)               
-            # if x == 7:
-            #     threat_info = self.check_threat_algo(spaces,8,4,x,threat_info)               
-            #     threat_info = self.check_threat_algo(spaces,8,1,x,threat_info)               
-            #     threat_info = self.check_threat_algo(spaces,4,9,x,threat_info)               
-            # if x == 9:
-            #     threat_info = self.check_threat_algo(spaces,8,6,x,threat_info)               
-            #     threat_info = self.check_threat_algo(spaces,8,3,x,threat_info)               
-            #     threat_info = self.check_threat_algo(spaces,6,7,x,threat_info)
-        return threat_info               
-
-
     def check_threat_algo(self,spaces,pos1,pos2,pos3,threat_info):
         if(set([pos1,pos2]).issubset( set(spaces) )):
             if pos3 in self.grid:
@@ -412,10 +299,6 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                 threat_info[0] = True
                 threat_info[1] = pos1                
         return threat_info       
-
-
-    # def check_win(self):
-
 
     #check for winner
     def check_winner(self):

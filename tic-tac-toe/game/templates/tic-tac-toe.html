@@ -1,3 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}{{ room }}{% endblock %}
+
+{% block extra_js %}
+<script src="http://code.jquery.com/jquery-latest.min.js"></script>
+<script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
+<script src="{{ STATIC_URL|default:MEDIA_URL }}js/socket.io.js"></script>
+<script src="{{ STATIC_URL }}js/game.js"></script>
+{% endblock %}
+
+{% block main %}
   <div id="tic-tac-toe" align="center">
     <h1>TIC-TAC-TOE GAME</h1>
     <table align="center" background="{{STATIC_URL}}images/grid.png">
@@ -22,3 +34,4 @@
     </div>
     <div id="display_win_message"></div>
   </div>
+{% endblock %}

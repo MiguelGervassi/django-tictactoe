@@ -6,10 +6,10 @@ import socketio.sdjango
 
 socketio.sdjango.autodiscover()
 
-urlpatterns = patterns("chat.views",
+urlpatterns = patterns("game.views",
     url("^socket\.io", include(socketio.sdjango.urls)),
-    url("^board", TemplateView.as_view(template_name="tic-tac-toe.html")),
+    # url("^board", TemplateView.as_view(template_name="tic-tac-toe.html")),
     url("^$", "rooms", name="rooms"),
-    url("^create/$", "create", name="create"),
-    url("^(?P<slug>.*)$", "room", name="room"),
+    # url("^create/$", "create", name="create"),
+    # url("^(?P<slug>.*)$", "room", name="room"),
 )

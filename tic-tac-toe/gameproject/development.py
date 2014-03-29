@@ -1,0 +1,1 @@
+from gameproject.settings import *
