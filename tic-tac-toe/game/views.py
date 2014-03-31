@@ -10,3 +10,6 @@ def index(request, template="index.html"):
     """
     context = {"grid": range(1,10)}
     return render(request, template, context)
+
+# def board(request, template="tic-tac-toe.html"):
+# 	return render(request, template, context_instance=RequestContext(request))

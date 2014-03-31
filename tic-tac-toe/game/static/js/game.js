@@ -8,16 +8,20 @@ socket.on('connect', function () {
 
 socket.on('move', function(position, mark) {
     if(mark=="X"){
-        $('#'+position).html("<img src='static/images/X.png' class='myimageclass'>");
-        $('#'+position).unbind("click");
+        $('#'+position).html("<div class='mark-x'></div>");
+        // $('#'+position).unbind("click");
     }else{
-        $('#'+position).html("<img src='static/images/O.png' class='myimageclass'>");
-        $('#'+position).unbind("click");
+        $('#'+position).html("<div class='mark-o'></div>");
+        // $('#'+position).unbind("click");
     }        
 });
 
 socket.on('disable_board', function() {
-    $("#tic-tac-toe").find("table,td").unbind("click");
+    $(".position").unbind("click");
+});
+
+socket.on('enable_board', function() {
+    $("#tic-tac-toe").find("table,td").bind("click");
 });
 
 socket.on('display_win_message', function(message) {
@@ -54,7 +58,13 @@ $(function () {
     });
 
     $(".reset_btn").click(function(e){ 
-        location.reload();
+        // location.reload();
+        socket.emit('reset')
+        socket.emit('start_game');
+        $(".position").html("<div class='mark'></div>");
+        $("#display_win_message").html("")
+        // $(".position").bind("click");
+         // $(".position").prop('disabled', false).removeClass('disabled');
     });
 
     function clear () {

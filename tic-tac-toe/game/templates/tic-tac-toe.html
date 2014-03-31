@@ -1,8 +1,8 @@
- <div id="tic-tac-toe">
-  <table align="center">
+ <div id="tic-tac-toe" >
+  <table>
     <tr>
       {% for i in grid %}
-        <td class="position" id="{{ i }}"></td>
+        <td class="position" id="{{ i }}"><div id="mark"></div></td>
         {% if not forloop.last and forloop.counter == 3 or forloop.counter == 6 %}
           </tr>
           <tr>

@@ -9,14 +9,14 @@
   <script src="{{ STATIC_URL }}js/game.js"></script>
 {% endblock %}
 
-{% block main %}
-  <h1>TIC-TAC-TOE GAME</h1>
-  <div id="canvas" align="center">
+{% block main %}  
+  <div id="canvas">
       {% include 'tic-tac-toe.html' %}
   </div>
 
-  <div id="controls" align="center">
-    <input type="submit" id="bigbutton" class="reset_btn" value="Restart"> 
+  <div id="controls">
+    <!-- <input type="submit" id="bigbutton" class="start_btn" value="Start">  -->
+    <input type="submit" id="bigbutton" class="reset_btn" value="Restart">
   </div>
   <div id="display_win_message"></div>
 {% endblock %}

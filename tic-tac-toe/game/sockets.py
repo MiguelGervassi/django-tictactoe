@@ -12,6 +12,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     player_spaces=[]
     ai_spaces=[]
     turn=0
+    game_ended=False
 
     def initialize(self):
         self.logger = logging.getLogger("socketio.game")
@@ -50,6 +51,8 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         return True    
 
     def on_reset(self):
+        self.game_ended=False
+        self.turn=0
         del self.grid[:]
         self.grid = (list(range(1,10)))
         del self.player_spaces[:]
@@ -58,6 +61,9 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     def on_move(self, position):
         #player_move
         position = int(position)
+        if position not in self.grid or self.game_ended:
+            return False
+
         self.turn=self.turn+1
         self.log(self.turn)
         self.log('You have moved to' + str(position))
@@ -269,20 +275,23 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
             if(player_win):
                 self.log("Player Wins")
                 self.broadcast_event('display_win_message', "Player Wins");
-                self.broadcast_event('disable_board')
-                self.on_reset()
+                # self.broadcast_event('disable_board')
+                self.game_ended=True
+                # self.on_reset()
                 return True
             elif(ai_win):
                 self.log("AI Wins")
                 self.broadcast_event('display_win_message', "AI Wins");
-                self.broadcast_event('disable_board')
-                self.on_reset()
+                # self.broadcast_event('disable_board')
+                self.game_ended=True
+                # self.on_reset()
                 return True
             elif not self.grid and not ai_win and not player_win:
                 self.log("Tie")
                 self.broadcast_event('display_win_message', "Tie");
-                self.broadcast_event('disable_board')
-                self.on_reset()
+                # self.broadcast_event('disable_board')
+                self.game_ended=True
+                # self.on_reset()
                 return True
         return False
     
