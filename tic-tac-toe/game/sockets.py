@@ -8,7 +8,7 @@ from random import shuffle
 
 @namespace('/game')
 class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
-    grid= range(1,10)
+    grid=range(1,10)
     player_spaces=[]
     ai_spaces=[]
     turn=0
@@ -22,32 +22,18 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     def log(self, message):
         self.logger.info("[{0}] {1}".format(self.socket.sessid, message))
     
-    def on_join(self):
-        self.on_reset()
-        return True
-        
+    # assign marks on start game and whoever is X goes first
     def on_start_game(self):
         arr = ['X','O']
         shuffle(arr)
         self.socket.session['player_mark'] = arr[0]
         self.socket.session['ai_mark'] = arr[1]
-        self.log(arr[0])
-        self.log(arr[1])    
         mark = self.socket.session['player_mark']
         if mark == 'X':
           self.log("Your turn")
         else:
-          self.turn=self.turn+1
           self.log("AI turn")
-          # ai_position = int(random.choice(self.grid))
-          ai_position = self.ai_logic()
-          self.broadcast_event('move', ai_position, self.socket.session['ai_mark'])
-          
-          if ai_position in self.grid:
-            self.grid.remove(ai_position)
-        
-          self.ai_spaces.append(ai_position)
-          self.log("Your turn")
+          self.ai_move()
         return True    
 
     def on_reset(self):
@@ -58,96 +44,97 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         del self.player_spaces[:]
         del self.ai_spaces[:]
 
+
     def on_move(self, position):
-        #player_move
+        #check if space occupied if it is, do not allow, if game ended do not allow any more moves
         position = int(position)
         if position not in self.grid or self.game_ended:
             return False
 
+        #player_move
+        self.player_move(position)
+        
+        #check for winner
+        if self.check_winner():
+            return True
+
+        #ai_move
+        self.ai_move()
+        
+        #check for winner
+        if self.check_winner():
+            return True
+                
+        #check if there's a threat
+        # threat = self.check_immediate_threat(self.player_spaces)
+        # ai_threat = self.check_immediate_threat(self.ai_spaces)
+
+        # if threat[0]:
+        #     print 'player is a threat!'
+        #     print threat[1]
+        # else:
+        #     print 'player not a threat'
+
+
+        # if ai_threat[0]:
+        #     print 'ai is a threat!'
+        #     print ai_threat[1]
+        # else:
+        #     print 'ai not a threat'
+
+        return True
+
+    # player moves 
+    # turn increments, log position moved, broadcast move and show it on grid canvas
+    # remove position from grid and add it to player_spaces
+    def player_move(self,position):
+        position = int(position)
         self.turn=self.turn+1
-        self.log(self.turn)
-        self.log('You have moved to' + str(position))
+        self.log('You have moved to ' + str(position))
         self.broadcast_event('move', position, self.socket.session['player_mark'])
         if position in self.grid:
             self.grid.remove(position)
         self.player_spaces.append(position)
-        print 'player spaces are '
-        for s in self.player_spaces:
-            print s
+        self.log("AI turn")
+        return True
 
-        #focus on this to check for error
-        #check for winner if there is one, end game and declare winner
-        if self.check_winner():
-            return True
-
-        #if list isn't empty then AI can move
+    # ai moves
+    # if there are still free spaces left turn increments, log position moved, broadcast move and show it on grid canvas
+    # remove position from grid and add it to ai_spaces
+    def ai_move(self):
         if self.grid: 
-            #ai move
-            # ai_position = int(random.choice(self.grid))
             self.turn=self.turn+1 #ai_turn
             ai_position = self.ai_logic()
-            self.log('AI has moved' + str(ai_position))
+            self.log('AI has moved to ' + str(ai_position))
             self.broadcast_event('move', ai_position, self.socket.session['ai_mark'])
             if ai_position in self.grid:
                 self.grid.remove(ai_position)
             self.ai_spaces.append(ai_position)
-            
-            print 'ai spaces are'
-            for s in self.ai_spaces:
-                print s
-     
-            # free spaces
-            print 'free spaces are'
-            for s in self.grid:
-                print s
-
-
-            self.log("This is turn" + str(self.turn))
-            #your turn
             self.log("Your turn")
-        
-        #check for winner add this to another method
-        #original check for win
-        if self.check_winner():
-            return True
-                
-         #check if there's a threat
-        threat = self.check_immediate_threat(self.player_spaces)
-        ai_threat = self.check_immediate_threat(self.ai_spaces)
-
-        if threat[0]:
-            print 'player is a threat!'
-            print threat[1]
-        else:
-            print 'player not a threat'
-
-
-        if ai_threat[0]:
-            print 'ai is a threat!'
-            print ai_threat[1]
-        else:
-            print 'ai not a threat'
-
-            
-            # if(!ai_win && !player_win): check for tie
         return True
 
     #ai logic
     def ai_logic(self):
         ai_position = random.choice(self.grid)
+        
+        # turn 1
+        # ai could be any position
         if self.turn == 1:
             return ai_position
 
+        # turn 2 - turn that puts a stop to win setups
+        # if player picks first move as corner
         if self.turn == 2:
             for x in [1,3,7,9]:
+                # ai must be center if play picks center ai must pick corner
                 if x in self.player_spaces:
                     ai_position = 5
                     return ai_position
                 elif 5 in self.player_spaces:
                     ai_position = random.choice(self.free_spaces([1,3,7,9]))
                     return ai_position
-
             for x in [2,4,6,8]:
+                # if player on even positions ai must be on position on top middle or below that player position
                 if x in self.player_spaces:
                     if x == 2:
                         ai_position = random.choice(self.free_spaces([1,3,5]))
@@ -162,17 +149,24 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                         ai_position = random.choice(self.free_spaces([9,7,5]))
                         return ai_position        
                    
-        if self.turn == 3: # if its turn 3:  must choose corner or center if possible, guaranteed offensive/defensive 
+        # turn 3
+        # choose center position if possible
+        # else choose randomly from free spaces (corners)
+        if self.turn == 3:   
             if self.player_spaces:
-                # if self.player_spaces[len(self.player_spaces)-1] in [2,4,6,8]: #check if one these spaces were taken (2,4,6,8)
                 turn3 = self.free_spaces([1,3,5,7,9])
                 if 5 in turn3:
                     ai_position = 5
                     return ai_position
                 else:
                     ai_position = random.choice(turn3)
-                            
-        if self.turn == 4: #turn 4, check for defense and attack
+                           
+        # turn 4 - offensive/defensive turn
+        # choose center position if possible
+        # check if diagnal corners have been chosen, if they have then defend against it by choosing even number
+        # else choose from corners, odd numbers
+        # check threats both immediate and strategic functions these methods will automatically defend against these moves 
+        if self.turn == 4: 
             turn4 = self.free_spaces([1,3,7,9])
             if turn4:
                 #diagnol check, i believe this works now :)
@@ -189,7 +183,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
         is_player_threat = self.check_immediate_threat(self.player_spaces)
         ai_win = self.check_immediate_threat(self.ai_spaces)
 
-        print 'checking threats...'
+        # print 'checking threats...'
         if ai_win[0]:
             ai_position = ai_win[1]
             return ai_win[1]
@@ -205,7 +199,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                 return is_player_threat[1]
         return ai_position
 
-
+    # immediate threats are like 1,2,3 or 1,5,9
     def check_immediate_threat(self,spaces):
         threat_info = [False,0] #if threat, if there is second value should be what position it is 
         if self.player_spaces:
@@ -216,7 +210,8 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                 threat_info = self.check_threat_algo(spaces, x,5,(10-x),threat_info)                                                   
         return threat_info
 
-    #if there is no immediate threat check for strategic threat
+    # if there is no immediate threat check for strategic threat
+    # strategic threats are 2,4 waiting to have a free space on 1 on your third turn
     def check_strategic_threat(self,spaces):
         threat_info = [False,0]
         for x in [4,7,6,9]: #2
@@ -249,6 +244,7 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                 if threat_info[0]: return threat_info                                    
         return threat_info
 
+    #if third position provided is available on grid, then it is a threat!
     def check_threat_algo(self,spaces,pos1,pos2,pos3,threat_info):
         if self.list_contains_list([pos1,pos2],spaces):
             if pos3 in self.grid:
@@ -268,30 +264,22 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
     def check_winner(self):
         if self.turn >= 3:
             player_win = self.check_winner_algo(self.player_spaces)
-            self.log(player_win)
             ai_win = self.check_winner_algo(self.ai_spaces)
-            self.log(ai_win)
-
+            
             if(player_win):
                 self.log("Player Wins")
                 self.broadcast_event('display_win_message', "Player Wins");
-                # self.broadcast_event('disable_board')
                 self.game_ended=True
-                # self.on_reset()
                 return True
             elif(ai_win):
                 self.log("AI Wins")
                 self.broadcast_event('display_win_message', "AI Wins");
-                # self.broadcast_event('disable_board')
                 self.game_ended=True
-                # self.on_reset()
                 return True
             elif not self.grid and not ai_win and not player_win:
                 self.log("Tie")
                 self.broadcast_event('display_win_message', "Tie");
-                # self.broadcast_event('disable_board')
                 self.game_ended=True
-                # self.on_reset()
                 return True
         return False
     
@@ -312,10 +300,10 @@ class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
                     win = True # break # found winner
         return win
 
-
-
+    # helper method to check if certain number pattern is in a list, example: [1,2] is in the player spaces (both must be in it)
     def list_contains_list(self,list1,list2):
         return set(list1).issubset( set(list2) )
 
+    #helper method to check what spaces are available from grid
     def free_spaces(self,custom_spaces): #check if the grid has the given spaces free
         return [x for x in self.grid if x in custom_spaces]
